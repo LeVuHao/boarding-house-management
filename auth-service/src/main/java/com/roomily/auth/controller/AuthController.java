@@ -1,0 +1,62 @@
+package com.roomily.auth.controller;
+
+import com.roomily.auth.dto.request.LandlordRegisterRequest;
+import com.roomily.auth.dto.request.LoginRequest;
+import com.roomily.auth.dto.request.RegisterRequest;
+import com.roomily.auth.dto.response.AuthResponse;
+import com.roomily.auth.dto.response.UserResponse;
+import com.roomily.auth.service.AuthService;
+import com.roomily.common.dto.ApiResponse;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("/api/v1/auth")
+@RequiredArgsConstructor
+public class AuthController {
+
+    private final AuthService authService;
+
+    @PostMapping("/register")
+    public ResponseEntity<ApiResponse<UserResponse>> register(@Valid @RequestBody RegisterRequest req) {
+        UserResponse res = authService.register(req);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.success("Đăng ký tài khoản thành công", res));
+    }
+
+    @PostMapping("/landlord/register")
+    public ResponseEntity<ApiResponse<UserResponse>> registerLandlord(@Valid @RequestBody LandlordRegisterRequest req) {
+        UserResponse res = authService.registerLandlord(req);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.success("Đăng ký chủ trọ thành công. Vui lòng thanh toán phí kích hoạt.", res));
+    }
+
+    @PostMapping("/login")
+    public ResponseEntity<ApiResponse<AuthResponse>> login(@Valid @RequestBody LoginRequest req) {
+        AuthResponse res = authService.login(req);
+        return ResponseEntity.ok(ApiResponse.success("Đăng nhập thành công", res));
+    }
+
+    @GetMapping("/profile")
+    public ResponseEntity<ApiResponse<UserResponse>> getProfile(@RequestHeader("X-User-Id") Long userId) {
+        UserResponse res = authService.getUserProfile(userId);
+        return ResponseEntity.ok(ApiResponse.success(res));
+    }
+
+    @PutMapping("/internal/activate-landlord/{userId}")
+    public ResponseEntity<ApiResponse<UserResponse>> activateLandlord(@PathVariable Long userId) {
+        UserResponse res = authService.activateLandlord(userId);
+        return ResponseEntity.ok(ApiResponse.success("Kích hoạt chủ trọ thành công", res));
+    }
+
+    // Endpoint public: dùng để trang "kích hoạt tài khoản" trên frontend kiểm tra
+    // trạng thái (PENDING_PAYMENT / ACTIVE) của chủ trọ vừa đăng ký, trước khi họ có JWT.
+    @GetMapping("/landlord/status/{userId}")
+    public ResponseEntity<ApiResponse<UserResponse>> getLandlordStatus(@PathVariable Long userId) {
+        UserResponse res = authService.getUserProfile(userId);
+        return ResponseEntity.ok(ApiResponse.success(res));
+    }
+}
